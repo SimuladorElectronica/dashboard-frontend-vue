@@ -3,7 +3,7 @@
 
 > Documento **generado automáticamente** por la cátedra de Programación III (RepoSense + análisis de calidad + constancia). **No editar a mano**: se regenera en cada evaluación.
 > Rama evaluada: `main`. Análisis **heurístico** (regex + métricas): es una criba para orientar la revisión, **no una nota**.
-> Generado: 2026-10-29.
+> Generado: 2026-11-02.
 
 ## 1. Veredicto
 
@@ -133,13 +133,13 @@ Cada aspecto indica **qué mide**, **por qué importa** y **tu resultado**. Cuan
 
 ## 5. Qué falta para aprobar
 
-Criterios que hoy están en rojo y qué habría que cambiar para alcanzar el nivel de aprobación (perfil `exigente`):
+Criterios que hoy están en rojo y, para cada uno, una explicación breve de **cómo corregirlo** hasta alcanzar el nivel de aprobación (perfil `exigente`):
 
-| Criterio | Resultado actual | Meta | Qué arreglar |
+| Criterio | Resultado actual | Meta | Cómo corregirlo |
 |---|---|---|---|
-| Vistas del frontend (Vistas) | **6** vista(s)/componente(s) | mínimo 8 | Cubrir las pantallas del enunciado hasta llegar a 8 vistas/componentes. |
+| Vistas del frontend (Vistas) | **6** vista(s)/componente(s) | mínimo 8 | Agregá las pantallas/componentes del enunciado que faltan y conectalas a la capa de servicios hasta llegar a 8 vistas. |
 
-> Empezá por las señales de seguridad (**SEC**, **SQL**) y por la **duplicación**: son las que más pesan en el índice y las más rápidas de verificar a ojo.
+> Empezá por las señales de seguridad (**SEC**, **SQL**) y por la **duplicación**: son las que más pesan en el índice y las más rápidas de verificar a ojo. Después de corregir, volvé a correr la medición: el semáforo se recalcula sobre `main`.
 
 ## 6. Anexo: dónde mirar
 
