@@ -660,8 +660,10 @@ tbody tr.is-selected {
 
 .row-actions {
   white-space: nowrap;
-  display: flex;
-  gap: 0.4rem;
+}
+
+.row-actions .btn + .btn {
+  margin-left: 0.4rem;
 }
 
 .filters {
