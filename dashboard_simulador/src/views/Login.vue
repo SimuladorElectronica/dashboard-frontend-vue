@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { extractApiErrorMessage } from '@/services/api'
-import { fetchMe, login } from '@/services/auth'
+import { login } from '@/services/auth'
+import { useCompleteLogin } from '@/composables/useCompleteLogin'
 
-const router = useRouter()
-const authStore = useAuthStore()
+const { completeLogin } = useCompleteLogin()
 
 const email = ref('')
 const password = ref('')
@@ -33,22 +31,13 @@ async function onSubmit() {
     return
   }
 
-  authStore.setToken(accessToken)
-
-  // 2) Cargar el perfil (GET /auth/me) para mostrarlo en el layout
-  try {
-    authStore.setUser(await fetchMe())
-  } catch {
-    // Si el perfil no carga, el interceptor 401 se encarga de la sesión
-  }
-
   loading.value = false
-  await router.push({ name: 'dashboard' })
+  await completeLogin(accessToken)
 }
 </script>
 
 <template>
-  <form class="login-form" novalidate @submit.prevent="onSubmit">
+  <form class="auth-form" novalidate @submit.prevent="onSubmit">
     <div class="field">
       <label for="email">Correo electrónico</label>
       <input
@@ -86,95 +75,14 @@ async function onSubmit() {
       <router-link :to="{ name: 'register' }">Crear cuenta</router-link>
     </p>
 
-    <p class="hint">Docente de prueba: profe@demo.com</p>
+    <p class="hint hint--center">Docente de prueba: profe@demo.com</p>
   </form>
 </template>
 
 <style scoped>
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.field label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.field input {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.95rem;
-  color: #0f172a;
-  background: #fff;
-}
-
-.field input:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 1px;
-  border-color: #3b82f6;
-}
-
-.error {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 0.55rem 0.75rem;
-}
-
-.submit-btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.7rem 1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #fff;
-  background: #2563eb;
-  cursor: pointer;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.switch-auth {
-  margin: 0;
-  text-align: center;
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.switch-auth a {
-  color: #2563eb;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.switch-auth a:hover {
-  text-decoration: underline;
-}
-
-.hint {
+.hint--center {
   margin: 0;
   text-align: center;
   font-size: 0.78rem;
-  color: #94a3b8;
 }
 </style>

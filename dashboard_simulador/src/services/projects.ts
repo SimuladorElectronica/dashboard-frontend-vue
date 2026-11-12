@@ -4,6 +4,25 @@ import type { ProjectDetail, ProjectSummary } from './types'
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const SHARE_SLUG_REGEX = /^[a-z0-9]{6}$/
 
+/** Extrae la clave de una URL de plantilla (`…/share/a9f3b2`) */
+function extractKeyFromUrl(value: string): string {
+  let path: string
+  try {
+    path = new URL(value).pathname
+  } catch {
+    throw new Error('La URL del proyecto plantilla no es válida')
+  }
+
+  const segments = path.split('/').filter(Boolean)
+  const slugIndex = segments.lastIndexOf('share')
+  const key = slugIndex >= 0 ? segments[slugIndex + 1] : segments[segments.length - 1]
+
+  if (!key) {
+    throw new Error('No se encontró un identificador de proyecto en la URL')
+  }
+  return key.toLowerCase()
+}
+
 /**
  * Extrae la clave de proyecto de lo que pegue el docente en el formulario:
  * una URL de plantilla (`…/share/a9f3b2`), un shareSlug (`a9f3b2`) o un UUID.
@@ -15,24 +34,7 @@ export function extractProjectKey(input: string): string {
     throw new Error('Pegá la URL del proyecto plantilla')
   }
 
-  // Caso URL: se toma el segmento posterior a /share/ (o el último segmento)
-  if (/^https?:\/\//i.test(value)) {
-    let path: string
-    try {
-      path = new URL(value).pathname
-    } catch {
-      throw new Error('La URL del proyecto plantilla no es válida')
-    }
-
-    const segments = path.split('/').filter(Boolean)
-    const slugIndex = segments.lastIndexOf('share')
-    const key = slugIndex >= 0 ? segments[slugIndex + 1] : segments[segments.length - 1]
-
-    if (!key) {
-      throw new Error('No se encontró un identificador de proyecto en la URL')
-    }
-    return key.toLowerCase()
-  }
+  if (/^https?:\/\//i.test(value)) return extractKeyFromUrl(value)
 
   return value
 }

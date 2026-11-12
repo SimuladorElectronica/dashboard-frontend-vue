@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { register } from '@/services/auth'
 import { extractApiErrorMessage } from '@/services/api'
-import { fetchMe, register } from '@/services/auth'
+import { useCompleteLogin } from '@/composables/useCompleteLogin'
 
-const router = useRouter()
-const authStore = useAuthStore()
+const { completeLogin } = useCompleteLogin()
 
 const name = ref('')
 const email = ref('')
@@ -15,50 +13,50 @@ const confirmPassword = ref('')
 const loading = ref(false)
 const error = ref('')
 
+/** Valida las contraseñas antes de tocar la red; devuelve el mensaje de error o '' */
+function validatePasswords(): string {
+  if (password.value.length < 8) return 'La contraseña debe tener al menos 8 caracteres.'
+  if (password.value !== confirmPassword.value) return 'Las contraseñas no coinciden.'
+  return ''
+}
+
+async function registerAccount(): Promise<string | null> {
+  try {
+    const response = await register(name.value.trim(), email.value.trim(), password.value)
+    return response.access_token
+  } catch (err) {
+    error.value = extractApiErrorMessage(err, 'No se pudo crear la cuenta. Probá de nuevo.')
+    return null
+  }
+}
+
 async function onSubmit() {
   if (loading.value) return
 
   error.value = ''
 
-  if (password.value.length < 8) {
-    error.value = 'La contraseña debe tener al menos 8 caracteres.'
-    return
-  }
-
-  if (password.value !== confirmPassword.value) {
-    error.value = 'Las contraseñas no coinciden.'
+  const validationError = validatePasswords()
+  if (validationError) {
+    error.value = validationError
     return
   }
 
   loading.value = true
 
   // 1) Registrar la cuenta (el backend crea un usuario STUDENT y devuelve el JWT)
-  let accessToken: string
-  try {
-    const response = await register(name.value.trim(), email.value.trim(), password.value)
-    accessToken = response.access_token
-  } catch (err) {
-    error.value = extractApiErrorMessage(err, 'No se pudo crear la cuenta. Probá de nuevo.')
+  const accessToken = await registerAccount()
+  if (!accessToken) {
     loading.value = false
     return
   }
 
-  authStore.setToken(accessToken)
-
-  // 2) Cargar el perfil (GET /auth/me) para mostrarlo en el layout
-  try {
-    authStore.setUser(await fetchMe())
-  } catch {
-    // Si el perfil no carga, el interceptor 401 se encarga de la sesión
-  }
-
   loading.value = false
-  await router.push({ name: 'dashboard' })
+  await completeLogin(accessToken)
 }
 </script>
 
 <template>
-  <form class="register-form" novalidate @submit.prevent="onSubmit">
+  <form class="auth-form" novalidate @submit.prevent="onSubmit">
     <div class="field">
       <label for="name">Nombre</label>
       <input
@@ -125,85 +123,3 @@ async function onSubmit() {
     </p>
   </form>
 </template>
-
-<style scoped>
-.register-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.field label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.field input {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.95rem;
-  color: #0f172a;
-  background: #fff;
-}
-
-.field input:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 1px;
-  border-color: #3b82f6;
-}
-
-.error {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 0.55rem 0.75rem;
-}
-
-.submit-btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.7rem 1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #fff;
-  background: #2563eb;
-  cursor: pointer;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.switch-auth {
-  margin: 0;
-  text-align: center;
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.switch-auth a {
-  color: #2563eb;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.switch-auth a:hover {
-  text-decoration: underline;
-}
-</style>
