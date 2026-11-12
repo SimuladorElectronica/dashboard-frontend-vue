@@ -11,6 +11,14 @@ const router = createRouter({
       meta: { requiresAuth: false, layout: 'AuthLayout' },
     },
     {
+      path: '/auth/token',
+      name: 'token-login',
+      // Entrada rápida desde el simulador: llega el access_token por
+      // query param (?access_token=…) o por hash (#access_token=…)
+      component: () => import('@/views/TokenLogin.vue'),
+      meta: { requiresAuth: false, layout: 'AuthLayout' },
+    },
+    {
       path: '/',
       name: 'dashboard',
       component: () => import('@/views/Dashboard.vue'),
@@ -26,6 +34,12 @@ const router = createRouter({
       path: '/guias',
       name: 'guias',
       component: () => import('@/views/Guides.vue'),
+      meta: { requiresAuth: true, layout: 'MainLayout' },
+    },
+    {
+      path: '/proyectos',
+      name: 'proyectos',
+      component: () => import('@/views/Projects.vue'),
       meta: { requiresAuth: true, layout: 'MainLayout' },
     },
   ],

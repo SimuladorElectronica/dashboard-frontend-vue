@@ -4,7 +4,7 @@ import { createPinia } from 'pinia'
 import Guides from '@/views/Guides.vue'
 import { createGuide, deleteGuide, listGuides, updateGuide } from '@/services/guides'
 import { listProjects, resolveStarterProjectId } from '@/services/projects'
-import { listSubmissions } from '@/services/submissions'
+import { createSubmission, listSubmissions } from '@/services/submissions'
 import { fetchMe } from '@/services/auth'
 import type { Guide, ProjectSummary, Submission } from '@/services/types'
 
@@ -22,6 +22,7 @@ vi.mock('@/services/projects', () => ({
 
 vi.mock('@/services/submissions', () => ({
   listSubmissions: vi.fn(),
+  createSubmission: vi.fn(),
 }))
 
 vi.mock('@/services/auth', () => ({
@@ -32,6 +33,7 @@ vi.mock('@/services/auth', () => ({
 const mockedListGuides = vi.mocked(listGuides)
 const mockedListProjects = vi.mocked(listProjects)
 const mockedListSubmissions = vi.mocked(listSubmissions)
+const mockedCreateSubmission = vi.mocked(createSubmission)
 const mockedCreateGuide = vi.mocked(createGuide)
 const mockedUpdateGuide = vi.mocked(updateGuide)
 const mockedDeleteGuide = vi.mocked(deleteGuide)
@@ -260,5 +262,159 @@ describe('Guides.vue — edición y borrado', () => {
     expect(mockedDeleteGuide).not.toHaveBeenCalled()
 
     confirmSpy.mockRestore()
+  })
+})
+
+describe('Guides.vue — vista del alumno', () => {
+  const student = {
+    id: 'u1',
+    email: 'alumno@demo.com',
+    name: 'Alumno Demo',
+    role: 'STUDENT' as const,
+  }
+
+  beforeEach(() => {
+    mockedFetchMe.mockResolvedValue(student)
+  })
+
+  it('no muestra el formulario ni las acciones de edición', async () => {
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    expect(wrapper.find('#guide-title').exists()).toBe(false)
+    expect(wrapper.find('form').exists()).toBe(false)
+    expect(wrapper.findAll('button').some((button) => button.text() === 'Editar')).toBe(false)
+    expect(wrapper.findAll('button').some((button) => button.text() === 'Eliminar')).toBe(false)
+  })
+
+  it('lista las guías disponibles sin filtrar por docente y carga proyectos propios', async () => {
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    expect(mockedListGuides).toHaveBeenCalledWith(undefined)
+    expect(mockedListProjects).toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Guías disponibles')
+    expect(wrapper.text()).toContain('Práctica 1 — LED parpadeante')
+  })
+
+  it('muestra sus entregas con la fecha y oculta las columnas de alumno', async () => {
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Mis entregas')
+    expect(wrapper.find('#submissions-table thead').text()).not.toContain('Alumno')
+    expect(wrapper.find('#submissions-table thead').text()).not.toContain('Correo')
+
+    const time = wrapper.find('#submissions-table time')
+    expect(time.exists()).toBe(true)
+    expect(time.attributes('datetime')).toBe('2026-11-09T12:00:00.000Z')
+  })
+
+  it('ofrece el estado vacío cuando todavía no entregó', async () => {
+    mockedListGuides.mockResolvedValue([])
+    mockedListSubmissions.mockResolvedValue({ items: [], total: 0 })
+
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('No hay guías disponibles todavía')
+    expect(wrapper.text()).toContain('Todavía no entregaste')
+  })
+
+  it('muestra el formulario de entrega solo para el alumno y no para el docente', async () => {
+    mockedFetchMe.mockResolvedValue(user)
+
+    const teacher = mountGuides()
+    await flushPromises()
+    expect(teacher.find('#delivery-guide').exists()).toBe(false)
+    expect(teacher.find('#delivery-project').exists()).toBe(false)
+
+    mockedFetchMe.mockResolvedValue(student)
+
+    const wrapper = mountGuides()
+    await flushPromises()
+    expect(wrapper.find('#delivery-guide').exists()).toBe(true)
+    expect(wrapper.find('#delivery-project').exists()).toBe(true)
+  })
+
+  it('entrega el proyecto propio elegido a la guía seleccionada', async () => {
+    mockedCreateSubmission.mockResolvedValue({
+      id: 's2',
+      guideId: 'g1',
+      studentId: 'u1',
+      projectId: 'p1',
+      submittedAt: '2026-11-10T09:00:00.000Z',
+      guide: { id: 'g1', title: 'Guía demo' },
+      project: { id: 'p1', title: 'Base LED', shareSlug: 'a9f3b2' },
+      student: { id: 'u1', name: 'Alumno Demo', email: 'alumno@demo.com' },
+    })
+
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    await wrapper.find('#delivery-guide').setValue('g1')
+    await wrapper.find('#delivery-project').setValue('p1')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Entregar')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(mockedCreateSubmission).toHaveBeenCalledWith('g1', 'p1')
+    expect(wrapper.find('[role="status"]').text()).toContain('Entrega registrada correctamente')
+  })
+
+  it('exige elegir guía y proyecto antes de entregar', async () => {
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Entregar')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(mockedCreateSubmission).not.toHaveBeenCalled()
+    expect(wrapper.find('[role="alert"]').text()).toContain('Elegí una guía')
+  })
+})
+
+describe('Guides.vue — abrir entrega en el simulador React', () => {
+  it('el enlace "Abrir" apunta a /p/:shareSlug del simulador', async () => {
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    const link = wrapper.find('#submissions-table a.btn')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('http://localhost:5173/p/b7c4de')
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toBe('noopener')
+  })
+
+  it('al hacer clic en la fila abre el proyecto en una pestaña nueva', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    await wrapper.find('#submissions-table tbody tr').trigger('click')
+
+    expect(openSpy).toHaveBeenCalledWith('http://localhost:5173/p/b7c4de', '_blank', 'noopener')
+
+    openSpy.mockRestore()
+  })
+
+  it('el enlace detiene la propagación para no duplicar la apertura', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    await wrapper.find('#submissions-table a.btn').trigger('click')
+
+    // @click.stop evita que el clic llegue a la fila (que es lo que llama a window.open)
+    expect(openSpy).not.toHaveBeenCalled()
+
+    openSpy.mockRestore()
   })
 })
