@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { extractProjectKey, isProjectKey, resolveStarterProjectId } from '@/services/projects'
+import {
+  extractProjectKey,
+  isProjectKey,
+  resolveStarterProjectId,
+  setProjectTemplate,
+} from '@/services/projects'
 import { api } from '@/services/api'
 
 vi.mock('@/services/api', () => ({
   api: {
     get: vi.fn(),
+    patch: vi.fn(),
   },
 }))
 
@@ -60,5 +66,31 @@ describe('resolveStarterProjectId', () => {
       'La plantilla debe ser una URL, un shareSlug de 6 caracteres o un UUID',
     )
     expect(mockedApi.get).not.toHaveBeenCalled()
+  })
+})
+
+describe('setProjectTemplate', () => {
+  it('llama a PATCH /projects/:id/template con el estado pedido', async () => {
+    mockedApi.patch.mockResolvedValue({
+      data: { id: 'p1', isTemplate: true, title: 'Amplificador' },
+    })
+
+    const updated = await setProjectTemplate('p1', true)
+
+    expect(mockedApi.patch).toHaveBeenCalledWith('/projects/p1/template', { isTemplate: true })
+    expect(updated.isTemplate).toBe(true)
+  })
+
+  it('propaga el 403 del backend cuando no tiene permiso', async () => {
+    mockedApi.patch.mockRejectedValue({
+      response: {
+        status: 403,
+        data: { message: 'solo un administrador o el docente dueño puede marcar plantillas' },
+      },
+    })
+
+    await expect(setProjectTemplate('p1', true)).rejects.toMatchObject({
+      response: { status: 403 },
+    })
   })
 })

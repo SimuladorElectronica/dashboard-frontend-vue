@@ -385,10 +385,13 @@ onMounted(refreshAll)
             <select id="guide-project" v-model="form.projectId" @change="onProjectChange">
               <option value="">— Elegir de mis proyectos —</option>
               <option v-for="project in projects" :key="project.id" :value="project.id">
-                {{ project.title }} · {{ project.shareSlug }}
+                {{ project.title }} · {{ project.shareSlug }}{{ project.isTemplate ? ' · plantilla' : '' }}
               </option>
             </select>
-            <span class="hint">Elegí un proyecto propio o pegá su URL abajo.</span>
+            <span class="hint">
+              Elegí un proyecto propio o pegá su URL abajo. Los marcados como plantilla abren
+              en el simulador como circuito inicial de la guía.
+            </span>
           </div>
 
           <div class="field">

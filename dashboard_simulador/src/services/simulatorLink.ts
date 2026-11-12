@@ -24,3 +24,12 @@ export function simulatorNewProjectUrl(token: string | null): string {
 export function simulatorProjectUrl(shareSlug: string): string {
   return `${simulatorBaseUrl()}/p/${encodeURIComponent(shareSlug)}`
 }
+
+/**
+ * URL pública de una plantilla para el modo invitado (`/plantillas/:slug`).
+ * El simulador la abre SIN sesión y carga la plantilla como copia editable en
+ * memoria (el original nunca se modifica). `slug` es el shareSlug del proyecto.
+ */
+export function simulatorTemplateUrl(slug: string): string {
+  return `${simulatorBaseUrl()}/plantillas/${encodeURIComponent(slug)}`
+}

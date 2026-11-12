@@ -65,6 +65,8 @@ export interface ProjectSummary {
   title: string
   description: string | null
   isPublic: boolean
+  /** true si el proyecto está marcado como plantilla pública del simulador */
+  isTemplate: boolean
   userId: string | null
   createdAt: string
   updatedAt: string

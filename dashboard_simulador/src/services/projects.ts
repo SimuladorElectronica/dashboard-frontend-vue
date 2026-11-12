@@ -54,6 +54,21 @@ export async function getProjectByKey(key: string): Promise<ProjectDetail> {
   return data
 }
 
+/**
+ * PATCH /projects/:id/template — marca o desmarca un proyecto como plantilla.
+ * Solo puede hacerlo un ADMIN o el TEACHER dueño (el backend responde 403 en otro caso).
+ * Devuelve el proyecto actualizado (con `isTemplate` y los demás campos).
+ */
+export async function setProjectTemplate(
+  id: string,
+  isTemplate: boolean,
+): Promise<ProjectDetail> {
+  const { data } = await api.patch<ProjectDetail>(`/projects/${encodeURIComponent(id)}/template`, {
+    isTemplate,
+  })
+  return data
+}
+
 /** Convierte la URL/slug/UUID en el UUID que espera POST /guides */
 export async function resolveStarterProjectId(input: string): Promise<string> {
   const key = extractProjectKey(input)

@@ -54,6 +54,7 @@ const project: ProjectSummary = {
   title: 'Base LED',
   description: 'Circuito inicial',
   isPublic: true,
+  isTemplate: false,
   userId: 't1',
   createdAt: '2026-11-01T10:00:00.000Z',
   updatedAt: '2026-11-01T10:00:00.000Z',

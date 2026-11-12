@@ -3,6 +3,7 @@ import {
   simulatorNewProjectUrl,
   simulatorBaseUrl,
   simulatorProjectUrl,
+  simulatorTemplateUrl,
 } from '@/services/simulatorLink'
 
 describe('simulatorBaseUrl', () => {
@@ -35,5 +36,15 @@ describe('simulatorProjectUrl', () => {
 
   it('codifica caracteres especiales del slug', () => {
     expect(simulatorProjectUrl('a/b c')).toBe('http://localhost:5174/p/a%2Fb%20c')
+  })
+})
+
+describe('simulatorTemplateUrl', () => {
+  it('arma la ruta pública de la plantilla para el modo invitado (/plantillas/:slug)', () => {
+    expect(simulatorTemplateUrl('a9f3b2')).toBe('http://localhost:5174/plantillas/a9f3b2')
+  })
+
+  it('codifica caracteres especiales del slug', () => {
+    expect(simulatorTemplateUrl('a/b c')).toBe('http://localhost:5174/plantillas/a%2Fb%20c')
   })
 })

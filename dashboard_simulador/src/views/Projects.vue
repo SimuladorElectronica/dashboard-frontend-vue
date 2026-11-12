@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { extractApiErrorMessage } from '@/services/api'
-import { listProjects } from '@/services/projects'
-import type { ProjectSummary } from '@/services/types'
+import { listProjects, setProjectTemplate } from '@/services/projects'
+import { simulatorProjectUrl, simulatorTemplateUrl } from '@/services/simulatorLink'
+import type { AuthUser, ProjectSummary } from '@/services/types'
+import { useAuthStore } from '@/stores/auth'
 
-/** URL base del simulador React (la ruta /p/:shareSlug vive ahí) */
-const SIMULATOR_BASE_URL = (import.meta.env.VITE_SIMULATOR_URL || 'http://localhost:5174').replace(
-  /\/$/,
-  '',
-)
+const authStore = useAuthStore()
 
 // --- Estado del listado ---------------------------------------------------
 const loading = ref(false)
 const projects = ref<ProjectSummary[]>([])
 const listError = ref('')
+const notice = ref('')
+/** Perfil de la sesión: define quién puede marcar plantillas (ADMIN o TEACHER dueño) */
+const currentUser = ref<AuthUser | null>(null)
+/** Id del proyecto cuya plantilla se está marcando (deshabilita su botón) */
+const templatePendingId = ref<string | null>(null)
 
 const subtitle = computed(
   () => 'Circuitos guardados en tu cuenta. Abrí cualquiera en el simulador para seguir editándolo.',
@@ -43,20 +46,78 @@ function formatDateTime(iso: string): string {
 }
 
 // --- Acciones -------------------------------------------------------------
-/** URL del proyecto en el simulador React (/p/:shareSlug) */
-function simulatorUrl(shareSlug: string): string {
-  return `${SIMULATOR_BASE_URL}/p/${shareSlug}`
+/** ¿El usuario puede marcar/desmarcar plantillas de este proyecto? (ADMIN o el TEACHER dueño) */
+function canManageTemplate(project: ProjectSummary): boolean {
+  const user = currentUser.value
+  if (!user) return false
+  if (user.role === 'ADMIN') return true
+  // El backend permite al docente dueño marcar/desmarcar su propio proyecto
+  return user.role === 'TEACHER' && project.userId !== null && project.userId === user.id
 }
 
 /** Clic en la fila: abre el circuito en el simulador React */
 function openInSimulator(project: ProjectSummary): void {
-  window.open(simulatorUrl(project.shareSlug), '_blank', 'noopener')
+  window.open(simulatorProjectUrl(project.shareSlug), '_blank', 'noopener')
+}
+
+/** Marca o desmarca el proyecto como plantilla pública del simulador (PATCH /projects/:id/template) */
+async function toggleTemplate(project: ProjectSummary): Promise<void> {
+  listError.value = ''
+  notice.value = ''
+  templatePendingId.value = project.id
+  try {
+    const updated = await setProjectTemplate(project.id, !project.isTemplate)
+    projects.value = projects.value.map((item) =>
+      item.id === project.id ? { ...item, isTemplate: updated.isTemplate } : item,
+    )
+    notice.value = updated.isTemplate
+      ? `"${updated.title}" marcado como plantilla`
+      : `"${updated.title}" ya no es plantilla`
+  } catch (err) {
+    listError.value = extractApiErrorMessage(err, 'No se pudo actualizar el estado de plantilla.')
+  } finally {
+    templatePendingId.value = null
+  }
+}
+
+/** Copia al portapapeles un texto, con fallback para contextos sin Clipboard API */
+async function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  try {
+    document.execCommand('copy')
+  } finally {
+    document.body.removeChild(textarea)
+  }
+}
+
+/** Copia el enlace público de la plantilla (la abre el simulador sin sesión) */
+async function copyTemplateLink(project: ProjectSummary): Promise<void> {
+  listError.value = ''
+  notice.value = ''
+  const url = simulatorTemplateUrl(project.shareSlug)
+  try {
+    await copyToClipboard(url)
+    notice.value = 'Enlace de la plantilla copiado al portapapeles'
+  } catch {
+    listError.value = `No se pudo copiar el enlace. Copialo manualmente: ${url}`
+  }
 }
 
 async function refresh(): Promise<void> {
   loading.value = true
   listError.value = ''
   try {
+    // El perfil define quién puede gestionar plantillas (ADMIN o TEACHER dueño)
+    currentUser.value = await authStore.fetchUser()
     // Con token el backend devuelve solo los proyectos del usuario logueado
     projects.value = await listProjects()
   } catch (err) {
@@ -80,6 +141,8 @@ onMounted(refresh)
         {{ loading ? 'Actualizando…' : 'Actualizar' }}
       </button>
     </header>
+
+    <p v-if="notice" class="notice" role="status">{{ notice }}</p>
 
     <section class="card" aria-labelledby="projects-title">
       <div class="card-header">
@@ -126,6 +189,7 @@ onMounted(refresh)
                 >
                   {{ project.isPublic ? 'Público' : 'Privado' }}
                 </span>
+                <span v-if="project.isTemplate" class="template-pill">Plantilla</span>
               </td>
               <td>{{ formatDate(project.createdAt) }}</td>
               <td>
@@ -134,9 +198,51 @@ onMounted(refresh)
                 </time>
               </td>
               <td class="row-actions">
+                <button
+                  v-if="canManageTemplate(project)"
+                  type="button"
+                  class="btn btn-small template-toggle"
+                  :class="{ 'template-toggle--on': project.isTemplate }"
+                  :aria-pressed="project.isTemplate"
+                  :disabled="templatePendingId === project.id"
+                  :title="
+                    project.isTemplate
+                      ? 'Quitar el estado de plantilla'
+                      : 'Marcar como plantilla pública del simulador'
+                  "
+                  @click.stop="toggleTemplate(project)"
+                >
+                  {{
+                    templatePendingId === project.id
+                      ? 'Guardando…'
+                      : project.isTemplate
+                        ? 'Plantilla ✓'
+                        : 'Plantilla'
+                  }}
+                </button>
+                <template v-if="project.isTemplate">
+                  <a
+                    class="btn btn-small btn-link"
+                    :href="simulatorTemplateUrl(project.shareSlug)"
+                    target="_blank"
+                    rel="noopener"
+                    title="Abrir como invitado en el simulador (sin sesión)"
+                    @click.stop
+                  >
+                    Plantilla ↗
+                  </a>
+                  <button
+                    type="button"
+                    class="btn btn-small"
+                    title="Copiar el enlace público de la plantilla"
+                    @click.stop="copyTemplateLink(project)"
+                  >
+                    Copiar enlace
+                  </button>
+                </template>
                 <a
                   class="btn btn-small btn-link"
-                  :href="simulatorUrl(project.shareSlug)"
+                  :href="simulatorProjectUrl(project.shareSlug)"
                   target="_blank"
                   rel="noopener"
                   @click.stop
@@ -257,6 +363,16 @@ a.btn:hover {
   background: #f8fafc;
 }
 
+.notice {
+  margin: 0;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.875rem;
+}
+
 .error {
   margin: 0 0 0.75rem;
   background: #fef2f2;
@@ -351,7 +467,34 @@ td strong {
   border: 1px solid #e2e8f0;
 }
 
+.template-pill {
+  display: inline-block;
+  margin-left: 0.35rem;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+}
+
+/* Toggle de plantilla: visible solo para ADMIN y para el TEACHER dueño */
+.template-toggle--on {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
+
+.template-toggle--on:hover:not(:disabled) {
+  background: #e0e7ff;
+}
+
 .row-actions {
   white-space: nowrap;
+}
+
+.row-actions .btn + .btn {
+  margin-left: 0.4rem;
 }
 </style>
