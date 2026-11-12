@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -22,20 +22,26 @@ const router = createRouter({
       component: () => import('@/views/Aulas.vue'),
       meta: { requiresAuth: true, layout: 'MainLayout' },
     },
+    {
+      path: '/guias',
+      name: 'guias',
+      component: () => import('@/views/Guides.vue'),
+      meta: { requiresAuth: true, layout: 'MainLayout' },
+    },
   ],
-});
+})
 
 // Guard de Navegación JWT
 router.beforeEach((to, _from, next) => {
-  const authStore = useAuthStore();
+  const authStore = useAuthStore()
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login' });
+    next({ name: 'login' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
-    next({ name: 'dashboard' });
+    next({ name: 'dashboard' })
   } else {
-    next();
+    next()
   }
-});
+})
 
-export default router;
+export default router
