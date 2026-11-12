@@ -27,16 +27,24 @@ export interface StarterProjectRef {
   shareSlug: string
 }
 
-/** Guía didáctica (CRUD de la Issue 2.2) */
+/** Guía didáctica (Issue 2.2; desde el módulo Classrooms pertenece a un aula) */
 export interface Guide {
   id: string
   title: string
   instructions: string
   teacherId: string
   starterProjectId: string
+  classroomId: string
   createdAt: string
   teacher: TeacherRef
+  classroom: ClassroomRef
   starterProject: StarterProjectRef
+}
+
+/** Referencia al aula incluida en las guías */
+export interface ClassroomRef {
+  id: string
+  name: string
 }
 
 /** Payload de POST /guides */
@@ -44,6 +52,7 @@ export interface GuideInput {
   title: string
   instructions: string
   starterProjectId: string
+  classroomId: string
 }
 
 /** Payload de PUT /guides/:id (todos los campos opcionales) */
@@ -90,4 +99,26 @@ export interface Submission {
 export interface ListResult<T> {
   items: T[]
   total: number
+}
+
+/** Aula del módulo Classrooms (GET /classrooms) */
+export interface Classroom {
+  id: string
+  name: string
+  createdAt: string
+  teacher: TeacherRef
+  /** Alumnos inscriptos */
+  memberCount: number
+  /** Guías vinculadas al aula */
+  guideCount: number
+  /** Código de unión: solo viaja para el docente dueño y el admin */
+  code?: string
+}
+
+/** Alumno inscripto en un aula (GET /classrooms/:id/students) */
+export interface ClassroomStudent {
+  id: string
+  name: string
+  email: string
+  joinedAt: string
 }

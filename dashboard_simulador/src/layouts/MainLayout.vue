@@ -119,6 +119,27 @@
           </svg>
         </button>
 
+        <a
+          :href="newProjectUrl"
+          target="_blank"
+          rel="noopener"
+          class="new-project-btn"
+          title="Abre el simulador con tu cuenta y un lienzo vacío"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          <span>Nuevo proyecto</span>
+        </a>
+
         <button type="button" class="logout-btn" @click="handleLogout">
           <svg
             viewBox="0 0 24 24"
@@ -145,13 +166,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { simulatorNewProjectUrl } from '@/services/simulatorLink'
 import { useRouter } from 'vue-router'
 
 const isSidebarClosed = ref(false)
 const authStore = useAuthStore()
 const router = useRouter()
+
+// "Nuevo proyecto": abre el simulador con la sesión de la cuenta y el lienzo en blanco
+const newProjectUrl = computed(() => simulatorNewProjectUrl(authStore.token))
 
 const toggleSidebar = () => {
   isSidebarClosed.value = !isSidebarClosed.value
@@ -331,6 +356,35 @@ nav {
   color: #0f172a;
 }
 
+.new-project-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 9px;
+  border: 1px solid #1d4ed8;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.1s ease;
+}
+
+.new-project-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.new-project-btn:hover {
+  background: #1d4ed8;
+  border-color: #1e40af;
+}
+
 .logout-btn {
   display: inline-flex;
   align-items: center;
@@ -360,12 +414,14 @@ nav {
 }
 
 .icon-btn:active,
-.logout-btn:active {
+.logout-btn:active,
+.new-project-btn:active {
   transform: translateY(1px);
 }
 
 .icon-btn:focus-visible,
-.logout-btn:focus-visible {
+.logout-btn:focus-visible,
+.new-project-btn:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }

@@ -2,9 +2,10 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { extractApiErrorMessage } from '@/services/api'
 import { createGuide, deleteGuide, listGuides, updateGuide } from '@/services/guides'
+import { listClassrooms } from '@/services/classrooms'
 import { listProjects, resolveStarterProjectId } from '@/services/projects'
 import { createSubmission, listSubmissions } from '@/services/submissions'
-import type { AuthUser, Guide, ProjectSummary, Submission } from '@/services/types'
+import type { AuthUser, Classroom, Guide, ProjectSummary, Submission } from '@/services/types'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -21,6 +22,9 @@ const loading = ref(false)
 const currentUser = ref<AuthUser | null>(null)
 const guides = ref<Guide[]>([])
 const projects = ref<ProjectSummary[]>([])
+const classrooms = ref<Classroom[]>([])
+/** Filtro de aula aplicado al listado (id del aula o vacío = todas) */
+const classroomFilter = ref('')
 const submissions = ref<Submission[]>([])
 const submissionsTotal = ref(0)
 const listError = ref('')
@@ -43,6 +47,8 @@ const formError = ref('')
 const form = reactive({
   title: '',
   instructions: '',
+  /** Aula a la que pertenece la guía (obligatorio) */
+  classroomId: '',
   /** UUID elegido en el selector de proyectos (vacío = usar la URL) */
   projectId: '',
   /** URL / shareSlug / UUID del circuito plantilla */
@@ -57,6 +63,7 @@ const fieldErrors = computed<Record<string, string>>(() => {
   const errors: Record<string, string> = {}
   if (!form.title.trim()) errors.title = 'Ingresá un título para la guía'
   if (!form.instructions.trim()) errors.instructions = 'Ingresá la consigna para el alumno'
+  if (!form.classroomId) errors.classroom = 'Elegí el aula a la que pertenece la guía'
   if (!form.templateUrl.trim() && !form.projectId) {
     errors.template = 'Asociá un proyecto plantilla (URL o selector)'
   }
@@ -74,7 +81,7 @@ const submissionsTitle = computed(() => (isTeacher.value ? 'Alumnos inscritos' :
 
 const subtitle = computed(() =>
   isTeacher.value
-    ? 'Creá consignas vinculando un circuito de plantilla y seguí las entregas de tus alumnos.'
+    ? 'Creá consignas por aula vinculando un circuito de plantilla y seguí las entregas de tus alumnos.'
     : 'Consultá tus entregas y abrí cada proyecto en el simulador.',
 )
 
@@ -117,13 +124,22 @@ function formatDateTime(value: string): string {
 }
 
 async function loadGuides(): Promise<void> {
-  // El docente ve su propio listado; el alumno ve las guías disponibles
+  // El docente ve las guías de sus aulas; el alumno las de las suyas;
+  // el filtro de aula acota dentro de ese alcance
   const teacherId = isTeacher.value ? currentUser.value?.id : undefined
-  guides.value = await listGuides(teacherId)
+  guides.value = await listGuides({
+    teacherId,
+    classroomId: classroomFilter.value || undefined,
+  })
 }
 
 async function loadProjects(): Promise<void> {
   projects.value = await listProjects()
+}
+
+async function loadClassrooms(): Promise<void> {
+  // Docente: sus aulas para el selector/filtro · Alumno: las inscriptas para agrupar
+  classrooms.value = await listClassrooms()
 }
 
 async function loadSubmissions(): Promise<void> {
@@ -139,7 +155,12 @@ async function refreshAll(): Promise<void> {
     // Primero el perfil: de él depende qué se carga y qué se muestra
     currentUser.value = await authStore.fetchUser()
 
-    const tasks: Promise<unknown>[] = [loadGuides(), loadSubmissions(), loadProjects()]
+    const tasks: Promise<unknown>[] = [
+      loadGuides(),
+      loadSubmissions(),
+      loadProjects(),
+      loadClassrooms(),
+    ]
 
     await Promise.all(tasks)
   } catch (err) {
@@ -212,6 +233,7 @@ async function onSubmit(): Promise<void> {
       title: form.title.trim(),
       instructions: form.instructions.trim(),
       starterProjectId,
+      classroomId: form.classroomId,
     }
 
     if (editingId.value) {
@@ -237,6 +259,7 @@ function resetForm(): void {
   formError.value = ''
   form.title = ''
   form.instructions = ''
+  form.classroomId = ''
   form.projectId = ''
   form.templateUrl = ''
   form.urlTouched = false
@@ -249,6 +272,7 @@ function startEdit(guide: Guide): void {
   notice.value = ''
   form.title = guide.title
   form.instructions = guide.instructions
+  form.classroomId = guide.classroomId
 
   // Asignar el proyecto correcto: el que se selecciona en el selector
   const projectInSelector = projects.value.find((p) => p.id === guide.starterProject.id)
@@ -351,6 +375,24 @@ onMounted(refreshAll)
           </div>
 
           <div class="field">
+            <label for="guide-classroom">Aula</label>
+            <select id="guide-classroom" v-model="form.classroomId">
+              <option value="">— Elegí el aula —</option>
+              <option v-for="classroom in classrooms" :key="classroom.id" :value="classroom.id">
+                {{ classroom.name }}
+              </option>
+            </select>
+            <span class="hint"> La guía solo la verán los alumnos inscriptos en el aula. </span>
+            <span v-if="classrooms.length === 0" class="hint">
+              Todavía no tenés aulas.
+              <router-link to="/aulas">Creá una en Gestión de Aulas</router-link>.
+            </span>
+            <span v-if="fieldErrors.classroom" class="field-error">{{
+              fieldErrors.classroom
+            }}</span>
+          </div>
+
+          <div class="field">
             <label for="guide-project">Proyecto inicial plantilla</label>
             <select id="guide-project" v-model="form.projectId" @change="onProjectChange">
               <option value="">— Elegir de mis proyectos —</option>
@@ -396,7 +438,16 @@ onMounted(refreshAll)
       <section class="card" aria-labelledby="list-title">
         <div class="card-header">
           <h2 id="list-title">{{ listTitle }}</h2>
-          <span class="badge">{{ guides.length }}</span>
+          <div class="filters">
+            <label class="sr-only" for="classroom-filter">Filtrar por aula</label>
+            <select id="classroom-filter" v-model="classroomFilter" @change="loadGuides">
+              <option value="">Todas las aulas</option>
+              <option v-for="classroom in classrooms" :key="classroom.id" :value="classroom.id">
+                {{ classroom.name }}
+              </option>
+            </select>
+            <span class="badge">{{ guides.length }}</span>
+          </div>
         </div>
 
         <p v-if="listError" class="error" role="alert">{{ listError }}</p>
@@ -410,6 +461,7 @@ onMounted(refreshAll)
             <thead>
               <tr>
                 <th>Título</th>
+                <th>Aula</th>
                 <th>Circuito plantilla</th>
                 <th>Creada</th>
                 <th v-if="isTeacher">Acciones</th>
@@ -425,6 +477,7 @@ onMounted(refreshAll)
                 <td>
                   <strong>{{ guide.title }}</strong>
                 </td>
+                <td>{{ guide.classroom?.name ?? '—' }}</td>
                 <td>
                   <span>{{ guide.starterProject.title }}</span>
                   <code class="slug">/share/{{ guide.starterProject.shareSlug }}</code>
@@ -468,7 +521,7 @@ onMounted(refreshAll)
           <select id="delivery-guide" v-model="deliveryGuideId">
             <option value="">— Elegí una guía —</option>
             <option v-for="guide in guides" :key="guide.id" :value="guide.id">
-              {{ guide.title }}
+              {{ guide.title }} · {{ guide.classroom?.name ?? '' }}
             </option>
           </select>
         </div>
@@ -511,7 +564,7 @@ onMounted(refreshAll)
           <select id="guide-filter" v-model="studentFilter" @change="loadSubmissions">
             <option value="">Todas las guías</option>
             <option v-for="guide in guides" :key="guide.id" :value="guide.id">
-              {{ guide.title }}
+              {{ guide.title }} · {{ guide.classroom?.name ?? '' }}
             </option>
           </select>
           <span class="badge">{{ submissionsTotal }}</span>

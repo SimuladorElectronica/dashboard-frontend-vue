@@ -3,16 +3,21 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import Guides from '@/views/Guides.vue'
 import { createGuide, deleteGuide, listGuides, updateGuide } from '@/services/guides'
+import { listClassrooms } from '@/services/classrooms'
 import { listProjects, resolveStarterProjectId } from '@/services/projects'
 import { createSubmission, listSubmissions } from '@/services/submissions'
 import { fetchMe } from '@/services/auth'
-import type { Guide, ProjectSummary, Submission } from '@/services/types'
+import type { Classroom, Guide, ProjectSummary, Submission } from '@/services/types'
 
 vi.mock('@/services/guides', () => ({
   listGuides: vi.fn(),
   createGuide: vi.fn(),
   updateGuide: vi.fn(),
   deleteGuide: vi.fn(),
+}))
+
+vi.mock('@/services/classrooms', () => ({
+  listClassrooms: vi.fn(),
 }))
 
 vi.mock('@/services/projects', () => ({
@@ -31,6 +36,7 @@ vi.mock('@/services/auth', () => ({
 }))
 
 const mockedListGuides = vi.mocked(listGuides)
+const mockedListClassrooms = vi.mocked(listClassrooms)
 const mockedListProjects = vi.mocked(listProjects)
 const mockedListSubmissions = vi.mocked(listSubmissions)
 const mockedCreateSubmission = vi.mocked(createSubmission)
@@ -53,14 +59,26 @@ const project: ProjectSummary = {
   updatedAt: '2026-11-01T10:00:00.000Z',
 }
 
+const teacherClassroom: Classroom = {
+  id: 'c1',
+  name: '5to año — comisión A',
+  createdAt: '2026-11-01T10:00:00.000Z',
+  teacher: { id: 't1', name: 'Profe Demo' },
+  memberCount: 12,
+  guideCount: 1,
+  code: 'abc123',
+}
+
 const guide: Guide = {
   id: 'g1',
   title: 'Práctica 1 — LED parpadeante',
   instructions: 'Conectá un LED al pin 13',
   teacherId: 't1',
   starterProjectId: 'p1',
+  classroomId: 'c1',
   createdAt: '2026-11-05T10:00:00.000Z',
   teacher: { id: 't1', name: 'Profe Demo' },
+  classroom: { id: 'c1', name: '5to año — comisión A' },
   starterProject: { id: 'p1', title: 'Base LED', shareSlug: 'a9f3b2' },
 }
 
@@ -76,7 +94,14 @@ const submission: Submission = {
 }
 
 function mountGuides() {
-  return mount(Guides, { global: { plugins: [createPinia()] } })
+  return mount(Guides, {
+    global: {
+      plugins: [createPinia()],
+      stubs: {
+        RouterLink: { template: '<a><slot /></a>' },
+      },
+    },
+  })
 }
 
 beforeEach(() => {
@@ -87,6 +112,7 @@ beforeEach(() => {
   mockedFetchMe.mockResolvedValue(user)
   mockedListGuides.mockResolvedValue([guide])
   mockedListProjects.mockResolvedValue([project])
+  mockedListClassrooms.mockResolvedValue([teacherClassroom])
   mockedListSubmissions.mockResolvedValue({ items: [submission], total: 1 })
 })
 
@@ -95,7 +121,7 @@ describe('Guides.vue — listado y tablas', () => {
     const wrapper = mountGuides()
     await flushPromises()
 
-    expect(mockedListGuides).toHaveBeenCalledWith('t1')
+    expect(mockedListGuides).toHaveBeenCalledWith({ teacherId: 't1', classroomId: undefined })
     expect(wrapper.text()).toContain('Práctica 1 — LED parpadeante')
     expect(wrapper.text()).toContain('Base LED')
     expect(wrapper.text()).toContain('/share/a9f3b2')
@@ -130,6 +156,9 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
 
     await wrapper.find('#guide-title').setValue('Práctica 2 — Sensor de luz')
     await wrapper.find('#guide-instructions').setValue('Conectá el sensor al pin A0')
+    const classroom = wrapper.find('#guide-classroom')
+    ;(classroom.element as HTMLSelectElement).value = 'c1'
+    await classroom.trigger('change')
     const select = wrapper.find('#guide-project')
     ;(select.element as HTMLSelectElement).value = 'p1'
     await select.trigger('change')
@@ -140,6 +169,7 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
       title: 'Práctica 2 — Sensor de luz',
       instructions: 'Conectá el sensor al pin A0',
       starterProjectId: 'p1',
+      classroomId: 'c1',
     })
     expect(mockedResolveStarterProjectId).not.toHaveBeenCalled()
     expect(wrapper.find('.notice').text()).toContain('Guía creada correctamente')
@@ -153,6 +183,7 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
 
     await wrapper.find('#guide-title').setValue('Práctica 3 — Botón')
     await wrapper.find('#guide-instructions').setValue('Simulá el pulsador')
+    await wrapper.find('#guide-classroom').setValue('c1')
     await wrapper.find('#guide-url').setValue('http://localhost:5173/share/a9f3b2')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
@@ -162,6 +193,7 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
       title: 'Práctica 3 — Botón',
       instructions: 'Simulá el pulsador',
       starterProjectId: 'p-resuelto',
+      classroomId: 'c1',
     })
   })
 
@@ -175,6 +207,7 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
     expect(mockedCreateGuide).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('Ingresá un título para la guía')
     expect(wrapper.text()).toContain('Ingresá la consigna para el alumno')
+    expect(wrapper.text()).toContain('Elegí el aula')
     expect(wrapper.text()).toContain('Asociá un proyecto plantilla')
   })
 
@@ -191,6 +224,7 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
 
     await wrapper.find('#guide-title').setValue('Práctica 4')
     await wrapper.find('#guide-instructions').setValue('Consigna')
+    await wrapper.find('#guide-classroom').setValue('c1')
     await wrapper.find('#guide-url').setValue('http://localhost:5173/share/zzzzzz')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
@@ -223,6 +257,7 @@ describe('Guides.vue — edición y borrado', () => {
       title: 'Práctica 1 editada',
       instructions: guide.instructions,
       starterProjectId: 'p1',
+      classroomId: 'c1',
     })
     expect(wrapper.find('.notice').text()).toContain('Guía actualizada correctamente')
   })
@@ -291,7 +326,7 @@ describe('Guides.vue — vista del alumno', () => {
     const wrapper = mountGuides()
     await flushPromises()
 
-    expect(mockedListGuides).toHaveBeenCalledWith(undefined)
+    expect(mockedListGuides).toHaveBeenCalledWith({ teacherId: undefined, classroomId: undefined })
     expect(mockedListProjects).toHaveBeenCalled()
     expect(wrapper.text()).toContain('Guías disponibles')
     expect(wrapper.text()).toContain('Práctica 1 — LED parpadeante')
