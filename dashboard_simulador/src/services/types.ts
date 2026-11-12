@@ -10,7 +10,7 @@ export interface AuthUser {
   role: Role
 }
 
-/** Respuesta de POST /auth/login */
+/** Respuesta de POST /auth/login y POST /auth/register */
 export interface LoginResponse {
   access_token: string
 }

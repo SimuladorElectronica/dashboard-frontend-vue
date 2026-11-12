@@ -81,6 +81,11 @@ async function onSubmit() {
       {{ loading ? 'Ingresando…' : 'Ingresar' }}
     </button>
 
+    <p class="switch-auth">
+      ¿No tenés cuenta?
+      <router-link :to="{ name: 'register' }">Crear cuenta</router-link>
+    </p>
+
     <p class="hint">Docente de prueba: profe@demo.com</p>
   </form>
 </template>
@@ -147,6 +152,23 @@ async function onSubmit() {
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.switch-auth {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.switch-auth a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.switch-auth a:hover {
+  text-decoration: underline;
 }
 
 .hint {
