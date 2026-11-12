@@ -68,11 +68,31 @@
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z" />
+            <path
+              d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"
+            />
             <path d="M13.5 3.5v5h5" />
             <path d="M8.5 13h7M8.5 16.5h4.5" />
           </svg>
           <span>Guías Prácticas</span>
+        </router-link>
+
+        <router-link to="/proyectos" class="nav-link">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="4.5" width="18" height="14.5" rx="2" />
+            <path d="M3 9h18" />
+            <path d="M7 6.75h.01M9.75 6.75h.01" />
+            <path d="M7.5 13.5l2.2-2.2 2 2 2.6-3.1 2.2 3.3" />
+          </svg>
+          <span>Mis Proyectos</span>
         </router-link>
       </nav>
     </aside>

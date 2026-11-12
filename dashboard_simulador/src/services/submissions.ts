@@ -9,9 +9,14 @@ export interface ListSubmissionsParams {
 }
 
 /**
- * GET /submissions — el docente ve las entregas de sus guías, el alumno las suyas.
- * El total de coincidencias llega en el header X-Total-Count.
+ * Crea una entrega: vincula un proyecto propio del alumno con la guía.
+ * El proyecto debe pertenecer al alumno que entrega (los ajenos o sin proyecto devuelven 403).
  */
+export async function createSubmission(guideId: string, projectId: string): Promise<Submission> {
+  const { data } = await api.post<Submission>('/submissions', { guideId, projectId })
+  return data
+}
+
 export async function listSubmissions(
   params: ListSubmissionsParams = {},
 ): Promise<ListResult<Submission>> {
