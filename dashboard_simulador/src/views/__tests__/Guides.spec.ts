@@ -184,11 +184,11 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
     await wrapper.find('#guide-title').setValue('Práctica 3 — Botón')
     await wrapper.find('#guide-instructions').setValue('Simulá el pulsador')
     await wrapper.find('#guide-classroom').setValue('c1')
-    await wrapper.find('#guide-url').setValue('http://localhost:5173/share/a9f3b2')
+    await wrapper.find('#guide-url').setValue('http://localhost:5174/share/a9f3b2')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(mockedResolveStarterProjectId).toHaveBeenCalledWith('http://localhost:5173/share/a9f3b2')
+    expect(mockedResolveStarterProjectId).toHaveBeenCalledWith('http://localhost:5174/share/a9f3b2')
     expect(mockedCreateGuide).toHaveBeenCalledWith({
       title: 'Práctica 3 — Botón',
       instructions: 'Simulá el pulsador',
@@ -225,7 +225,7 @@ describe('Guides.vue — alta de guía (criterio de aceptación)', () => {
     await wrapper.find('#guide-title').setValue('Práctica 4')
     await wrapper.find('#guide-instructions').setValue('Consigna')
     await wrapper.find('#guide-classroom').setValue('c1')
-    await wrapper.find('#guide-url').setValue('http://localhost:5173/share/zzzzzz')
+    await wrapper.find('#guide-url').setValue('http://localhost:5174/share/zzzzzz')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
@@ -421,7 +421,7 @@ describe('Guides.vue — abrir entrega en el simulador React', () => {
 
     const link = wrapper.find('#submissions-table a.btn')
     expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('http://localhost:5173/p/b7c4de')
+    expect(link.attributes('href')).toBe('http://localhost:5174/p/b7c4de')
     expect(link.attributes('target')).toBe('_blank')
     expect(link.attributes('rel')).toBe('noopener')
   })
@@ -434,7 +434,7 @@ describe('Guides.vue — abrir entrega en el simulador React', () => {
 
     await wrapper.find('#submissions-table tbody tr').trigger('click')
 
-    expect(openSpy).toHaveBeenCalledWith('http://localhost:5173/p/b7c4de', '_blank', 'noopener')
+    expect(openSpy).toHaveBeenCalledWith('http://localhost:5174/p/b7c4de', '_blank', 'noopener')
 
     openSpy.mockRestore()
   })
@@ -448,6 +448,47 @@ describe('Guides.vue — abrir entrega en el simulador React', () => {
     await wrapper.find('#submissions-table a.btn').trigger('click')
 
     // @click.stop evita que el clic llegue a la fila (que es lo que llama a window.open)
+    expect(openSpy).not.toHaveBeenCalled()
+
+    openSpy.mockRestore()
+  })
+})
+
+describe('Guides.vue — abrir la guía plantilla en el simulador React', () => {
+  it('al hacer clic en una guía abre su circuito plantilla en una pestaña nueva', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    await wrapper.find('#guides-table tbody tr').trigger('click')
+
+    expect(openSpy).toHaveBeenCalledWith('http://localhost:5174/p/a9f3b2', '_blank', 'noopener')
+
+    openSpy.mockRestore()
+  })
+
+  it('el enlace del circuito plantilla apunta a /p/:shareSlug del simulador', async () => {
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    const link = wrapper.find('#guides-table a.template-link')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('http://localhost:5174/p/a9f3b2')
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toBe('noopener')
+    expect(link.text()).toContain('/share/a9f3b2')
+  })
+
+  it('el enlace del circuito plantilla detiene la propagación', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+
+    const wrapper = mountGuides()
+    await flushPromises()
+
+    await wrapper.find('#guides-table a.template-link').trigger('click')
+
+    // El enlace abre por sí mismo (target _blank); la fila no debe abrir otra pestaña
     expect(openSpy).not.toHaveBeenCalled()
 
     openSpy.mockRestore()

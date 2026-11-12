@@ -122,7 +122,7 @@ describe('Projects.vue — abrir proyecto en el simulador React', () => {
 
     const link = wrapper.find('#projects-table tbody tr a.btn')
     expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('http://localhost:5173/p/a9f3b2')
+    expect(link.attributes('href')).toBe('http://localhost:5174/p/a9f3b2')
     expect(link.attributes('target')).toBe('_blank')
     expect(link.attributes('rel')).toBe('noopener')
   })
@@ -135,7 +135,7 @@ describe('Projects.vue — abrir proyecto en el simulador React', () => {
 
     await wrapper.find('#projects-table tbody tr').trigger('click')
 
-    expect(openSpy).toHaveBeenCalledWith('http://localhost:5173/p/a9f3b2', '_blank', 'noopener')
+    expect(openSpy).toHaveBeenCalledWith('http://localhost:5174/p/a9f3b2', '_blank', 'noopener')
 
     openSpy.mockRestore()
   })

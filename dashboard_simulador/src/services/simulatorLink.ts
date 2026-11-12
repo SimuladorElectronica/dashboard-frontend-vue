@@ -9,12 +9,18 @@
  * (olvidando cualquier proyecto recordado en ese navegador).
  */
 export function simulatorBaseUrl(): string {
-  return (import.meta.env.VITE_SIMULATOR_URL || 'http://localhost:5173').replace(/\/+$/, '')
+  return (import.meta.env.VITE_SIMULATOR_URL || 'http://localhost:5174').replace(/\/+$/, '')
 }
 
 export function simulatorNewProjectUrl(token: string | null): string {
   const base = simulatorBaseUrl()
-  return token
-    ? `${base}/session/${encodeURIComponent(token)}?new=1`
-    : `${base}/new`
+  return token ? `${base}/session/${encodeURIComponent(token)}?new=1` : `${base}/new`
+}
+
+/**
+ * URL de un circuito compartido en el simulador (`/p/:shareSlug`).
+ * Es la ruta que usa el simulador para cargar un proyecto plantilla o una entrega.
+ */
+export function simulatorProjectUrl(shareSlug: string): string {
+  return `${simulatorBaseUrl()}/p/${encodeURIComponent(shareSlug)}`
 }

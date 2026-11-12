@@ -5,16 +5,11 @@ import { createGuide, deleteGuide, listGuides, updateGuide } from '@/services/gu
 import { listClassrooms } from '@/services/classrooms'
 import { listProjects, resolveStarterProjectId } from '@/services/projects'
 import { createSubmission, listSubmissions } from '@/services/submissions'
+import { simulatorProjectUrl } from '@/services/simulatorLink'
 import type { AuthUser, Classroom, Guide, ProjectSummary, Submission } from '@/services/types'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
-
-/** URL base del simulador React (la ruta /p/:shareSlug vive ahí) */
-const SIMULATOR_BASE_URL = (import.meta.env.VITE_SIMULATOR_URL || 'http://localhost:5173').replace(
-  /\/$/,
-  '',
-)
 
 // --- Estado del listado / tablas -----------------------------------------
 const loading = ref(false)
@@ -81,8 +76,8 @@ const submissionsTitle = computed(() => (isTeacher.value ? 'Alumnos inscritos' :
 
 const subtitle = computed(() =>
   isTeacher.value
-    ? 'Creá consignas por aula vinculando un circuito de plantilla y seguí las entregas de tus alumnos.'
-    : 'Consultá tus entregas y abrí cada proyecto en el simulador.',
+    ? 'Creá consignas por aula vinculando un circuito de plantilla y seguí las entregas de tus alumnos. Tocá una guía para abrir su plantilla en el simulador.'
+    : 'Consultá tus entregas y abrí el circuito plantilla de cada guía en el simulador.',
 )
 
 const emptyGuidesMessage = computed(() =>
@@ -300,25 +295,18 @@ async function removeGuide(guide: Guide): Promise<void> {
   }
 }
 
-/** Selecciona una guía para filtrar la tabla de alumnos */
-function selectGuide(guide: Guide): void {
-  studentFilter.value = guide.id
-  void loadSubmissions().catch((err: unknown) => {
-    listError.value = extractApiErrorMessage(err, 'No se pudieron cargar las entregas.')
-  })
-}
-
 // --- Simulador React -------------------------------------------------------
 
-/** URL del circuito entregado en el simulador React (/p/:shareSlug) */
-function simulatorUrl(shareSlug: string): string {
-  return `${SIMULATOR_BASE_URL}/p/${shareSlug}`
+/** Clic en una guía: abre su circuito plantilla en el simulador React */
+function openGuideInSimulator(guide: Guide): void {
+  if (!guide.starterProject?.shareSlug) return
+  window.open(simulatorProjectUrl(guide.starterProject.shareSlug), '_blank', 'noopener')
 }
 
 /** Clic en una entrega: abre el estado guardado en el simulador React */
 function openInSimulator(submission: Submission): void {
   if (!submission.project) return
-  window.open(simulatorUrl(submission.project.shareSlug), '_blank', 'noopener')
+  window.open(simulatorProjectUrl(submission.project.shareSlug), '_blank', 'noopener')
 }
 
 onMounted(refreshAll)
@@ -409,7 +397,7 @@ onMounted(refreshAll)
               id="guide-url"
               v-model="form.templateUrl"
               type="text"
-              placeholder="http://localhost:5173/share/a9f3b2"
+              placeholder="http://localhost:5174/share/a9f3b2"
               @input="markUrlTouched"
             />
             <span class="hint">
@@ -472,7 +460,8 @@ onMounted(refreshAll)
                 v-for="guide in guides"
                 :key="guide.id"
                 :class="{ 'is-selected': guide.id === studentFilter }"
-                @click="selectGuide(guide)"
+                title="Abrir la guía plantilla en el simulador"
+                @click="openGuideInSimulator(guide)"
               >
                 <td>
                   <strong>{{ guide.title }}</strong>
@@ -480,7 +469,17 @@ onMounted(refreshAll)
                 <td>{{ guide.classroom?.name ?? '—' }}</td>
                 <td>
                   <span>{{ guide.starterProject.title }}</span>
-                  <code class="slug">/share/{{ guide.starterProject.shareSlug }}</code>
+                  <a
+                    class="template-link"
+                    :href="simulatorProjectUrl(guide.starterProject.shareSlug)"
+                    target="_blank"
+                    rel="noopener"
+                    :title="`Abrir ${guide.starterProject.title} en el simulador`"
+                    @click.stop
+                  >
+                    <code class="slug">/share/{{ guide.starterProject.shareSlug }}</code>
+                    <span aria-hidden="true">↗</span>
+                  </a>
                 </td>
                 <td>{{ formatDate(guide.createdAt) }}</td>
                 <td v-if="isTeacher" class="row-actions">
@@ -613,7 +612,7 @@ onMounted(refreshAll)
                 <a
                   v-if="submission.project"
                   class="btn btn-small btn-link"
-                  :href="simulatorUrl(submission.project.shareSlug)"
+                  :href="simulatorProjectUrl(submission.project.shareSlug)"
                   target="_blank"
                   rel="noopener"
                   @click.stop
@@ -891,6 +890,22 @@ tbody tr.is-selected {
   padding: 0.1rem 0.35rem;
   margin-top: 0.2rem;
   width: fit-content;
+}
+
+/* Enlace al circuito plantilla: el clic abre el simulador y no
+   selecciona la fila (evita duplicar la acción) */
+.template-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.template-link:hover .slug {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .row-actions {

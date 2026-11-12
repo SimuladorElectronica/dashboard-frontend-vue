@@ -5,7 +5,7 @@ import { listProjects } from '@/services/projects'
 import type { ProjectSummary } from '@/services/types'
 
 /** URL base del simulador React (la ruta /p/:shareSlug vive ahí) */
-const SIMULATOR_BASE_URL = (import.meta.env.VITE_SIMULATOR_URL || 'http://localhost:5173').replace(
+const SIMULATOR_BASE_URL = (import.meta.env.VITE_SIMULATOR_URL || 'http://localhost:5174').replace(
   /\/$/,
   '',
 )
