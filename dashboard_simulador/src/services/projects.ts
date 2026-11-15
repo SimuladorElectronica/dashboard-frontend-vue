@@ -45,8 +45,9 @@ export function isProjectKey(key: string): boolean {
 }
 
 /** GET /projects — propios con token, públicos sin token (total en X-Total-Count) */
-export async function listProjects(): Promise<ProjectSummary[]> {
-  const { data } = await api.get<ProjectSummary[]>('/projects', { params: { take: 100 } })
+export async function listProjects(take?: number): Promise<ProjectSummary[]> {
+  const takeParam = take ?? 100
+  const { data } = await api.get<ProjectSummary[]>('/projects', { params: { take: takeParam } })
   return data
 }
 
@@ -61,10 +62,7 @@ export async function getProjectByKey(key: string): Promise<ProjectDetail> {
  * Solo puede hacerlo un ADMIN o el TEACHER dueño (el backend responde 403 en otro caso).
  * Devuelve el proyecto actualizado (con `isTemplate` y los demás campos).
  */
-export async function setProjectTemplate(
-  id: string,
-  isTemplate: boolean,
-): Promise<ProjectDetail> {
+export async function setProjectTemplate(id: string, isTemplate: boolean): Promise<ProjectDetail> {
   const { data } = await api.patch<ProjectDetail>(`/projects/${encodeURIComponent(id)}/template`, {
     isTemplate,
   })

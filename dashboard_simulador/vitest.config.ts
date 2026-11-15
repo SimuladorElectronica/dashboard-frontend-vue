@@ -17,7 +17,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],
-      reportsDirectory: 'coverage',
+      // La cátedra busca el artefacto en la raíz del repo (coverage/coverage-summary.json)
+      reportsDirectory: '../coverage',
       include: ['src/**/*.{ts,vue}'],
       exclude: ['src/**/__tests__/**'],
     },

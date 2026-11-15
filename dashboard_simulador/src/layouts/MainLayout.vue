@@ -12,16 +12,9 @@
           title="Mostrar u ocultar el menú"
           @click="toggleSidebar"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            aria-hidden="true"
-          >
+          <NavIcon :stroke-width="1.8">
             <path d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
+          </NavIcon>
         </button>
 
         <a
@@ -31,34 +24,18 @@
           class="new-project-btn"
           title="Abre el simulador con tu cuenta y un lienzo vacío"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
+          <NavIcon :stroke-width="1.8">
             <path d="M12 5v14M5 12h14" />
-          </svg>
+          </NavIcon>
           <span>Nuevo proyecto</span>
         </a>
 
         <button type="button" class="logout-btn" @click="handleLogout">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
+          <NavIcon :stroke-width="1.8">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <path d="M16 17l5-5-5-5" />
             <path d="M21 12H9" />
-          </svg>
+          </NavIcon>
           <span>Cerrar Sesión</span>
         </button>
       </header>
@@ -76,6 +53,7 @@ import { useAuthStore } from '@/stores/auth'
 import { simulatorNewProjectUrl } from '@/services/simulatorLink'
 import { useRouter } from 'vue-router'
 import MainSidebar from '@/components/MainSidebar.vue'
+import NavIcon from '@/components/NavIcon.vue'
 
 const isSidebarClosed = ref(false)
 const authStore = useAuthStore()

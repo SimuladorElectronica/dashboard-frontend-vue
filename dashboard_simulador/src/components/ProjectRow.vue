@@ -116,26 +116,6 @@ td strong {
   white-space: nowrap;
 }
 
-.visibility {
-  display: inline-block;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.15rem 0.55rem;
-}
-
-.visibility--public {
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
-}
-
-.visibility--private {
-  background: #f8fafc;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-
 .template-pill {
   display: inline-block;
   margin-left: 0.35rem;
