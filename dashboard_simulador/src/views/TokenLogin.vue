@@ -111,41 +111,4 @@ onMounted(async () => {
     border-top-color: #2563eb;
   }
 }
-
-.muted {
-  color: #64748b;
-  font-size: 0.875rem;
-}
-
-.error {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
-}
-
-.btn {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  color: #334155;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.5rem 1.1rem;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-
-.btn-primary:hover {
-  background: #1d4ed8;
-}
 </style>

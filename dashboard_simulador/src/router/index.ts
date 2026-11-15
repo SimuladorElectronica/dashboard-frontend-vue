@@ -11,6 +11,12 @@ const router = createRouter({
       meta: { requiresAuth: false, layout: 'AuthLayout' },
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/Register.vue'),
+      meta: { requiresAuth: false, layout: 'AuthLayout' },
+    },
+    {
       path: '/auth/token',
       name: 'token-login',
       // Entrada rápida desde el simulador: llega el access_token por
@@ -51,7 +57,7 @@ router.beforeEach((to, _from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
+  } else if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
     next({ name: 'dashboard' })
   } else {
     next()

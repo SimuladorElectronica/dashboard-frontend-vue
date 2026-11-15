@@ -1,15 +1,26 @@
 import { api } from './api'
 import type { Guide, GuideInput, GuideUpdateInput } from './types'
 
-/** GET /guides — opcionalmente filtrado por ?teacherId= */
-export async function listGuides(teacherId?: string): Promise<Guide[]> {
+export interface ListGuidesParams {
+  /** Filtra las guías de un docente (opcional) */
+  teacherId?: string
+  /** Filtra las guías de un aula (opcional) */
+  classroomId?: string
+}
+
+/** GET /guides — el alcance depende del rol; estos filtros acotan dentro de él */
+export async function listGuides(params: ListGuidesParams = {}): Promise<Guide[]> {
+  const { teacherId, classroomId } = params
   const { data } = await api.get<Guide[]>('/guides', {
-    params: teacherId ? { teacherId } : {},
+    params: {
+      ...(teacherId ? { teacherId } : {}),
+      ...(classroomId ? { classroomId } : {}),
+    },
   })
   return data
 }
 
-/** POST /guides — requiere rol TEACHER */
+/** POST /guides — requiere rol TEACHER; `classroomId` debe ser un aula propia */
 export async function createGuide(input: GuideInput): Promise<Guide> {
   const { data } = await api.post<Guide>('/guides', input)
   return data

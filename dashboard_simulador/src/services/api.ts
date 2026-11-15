@@ -31,6 +31,32 @@ api.interceptors.response.use(
   },
 )
 
+type ApiErrorShape = { response?: { data?: { message?: unknown } } }
+
+/** Lee `response.data.message` de un error de axios (sin romper con valores no-objeto) */
+function readBackendMessage(error: unknown): unknown {
+  if (typeof error !== 'object' || error === null) return undefined
+  const response = (error as ApiErrorShape).response
+  if (!response) return undefined
+  const data = response.data
+  if (!data) return undefined
+  return data.message
+}
+
+/** Lee el `message` que manda NestJS en `response.data` (string o array) */
+function backendMessageOf(error: unknown): string | null {
+  const message = readBackendMessage(error)
+  if (typeof message === 'string' && message) return message
+  if (Array.isArray(message) && message.length > 0) return message.join(' · ')
+  return null
+}
+
+/** ¿El error de axios es de red (pedido sin respuesta)? */
+function isNetworkError(error: unknown): boolean {
+  const axiosError = error as { isAxiosError?: boolean; response?: unknown }
+  return !!axiosError?.isAxiosError && !axiosError?.response
+}
+
 /**
  * Traduce un error de axios en un mensaje mostrable:
  * usa `message` del backend (NestJS) o un texto genérico.
@@ -39,21 +65,9 @@ export function extractApiErrorMessage(
   error: unknown,
   fallback = 'Ocurrió un error. Probá de nuevo.',
 ): string {
-  const axiosError = error as {
-    isAxiosError?: boolean
-    response?: { data?: { message?: unknown } }
-    message?: string
-  }
-
-  const backendMessage = axiosError?.response?.data?.message
-  if (typeof backendMessage === 'string' && backendMessage) return backendMessage
-  if (Array.isArray(backendMessage) && backendMessage.length > 0) {
-    return backendMessage.join(' · ')
-  }
-
-  if (axiosError?.isAxiosError && !axiosError.response) {
-    return 'No se pudo conectar con el servidor.'
-  }
+  const backendMessage = backendMessageOf(error)
+  if (backendMessage) return backendMessage
+  if (isNetworkError(error)) return 'No se pudo conectar con el servidor.'
 
   return fallback
 }

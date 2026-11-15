@@ -20,8 +20,10 @@ const guide: Guide = {
   instructions: 'Conectá un LED al pin 13',
   teacherId: 't1',
   starterProjectId: 'p1',
+  classroomId: 'c1',
   createdAt: '2026-11-09T10:00:00.000Z',
   teacher: { id: 't1', name: 'Profe Demo' },
+  classroom: { id: 'c1', name: '5to año — comisión A' },
   starterProject: { id: 'p1', title: 'Base LED', shareSlug: 'a9f3b2' },
 }
 
@@ -42,9 +44,17 @@ describe('listGuides', () => {
   it('filtra por docente cuando se pasa teacherId', async () => {
     mockedApi.get.mockResolvedValue({ data: [guide] })
 
-    await listGuides('t1')
+    await listGuides({ teacherId: 't1' })
 
     expect(mockedApi.get).toHaveBeenCalledWith('/guides', { params: { teacherId: 't1' } })
+  })
+
+  it('filtra por aula cuando se pasa classroomId', async () => {
+    mockedApi.get.mockResolvedValue({ data: [guide] })
+
+    await listGuides({ classroomId: 'c1' })
+
+    expect(mockedApi.get).toHaveBeenCalledWith('/guides', { params: { classroomId: 'c1' } })
   })
 })
 
@@ -56,6 +66,7 @@ describe('createGuide', () => {
       title: guide.title,
       instructions: guide.instructions,
       starterProjectId: 'p1',
+      classroomId: 'c1',
     }
     const result = await createGuide(payload)
 

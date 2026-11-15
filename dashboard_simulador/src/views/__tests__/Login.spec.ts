@@ -21,7 +21,14 @@ const mockedFetchMe = vi.mocked(fetchMe)
 const user = { id: 't1', email: 'profe@demo.com', name: 'Profe Demo', role: 'TEACHER' as const }
 
 function mountLogin() {
-  return mount(Login, { global: { plugins: [createPinia()] } })
+  return mount(Login, {
+    global: {
+      plugins: [createPinia()],
+      stubs: {
+        RouterLink: { template: '<a><slot /></a>' },
+      },
+    },
+  })
 }
 
 beforeEach(() => {
